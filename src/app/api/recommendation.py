@@ -15,18 +15,18 @@ CORS(app)  # Enable CORS for all routes
 # Load the movies dataset
 df = pd.read_csv("movies.csv")
 
-# Normalize columns
+# Normalize the Rating column only
 scaler = MinMaxScaler()
-df[['Time', 'Rating']] = scaler.fit_transform(df[['Time', 'Rating']])
+df['Rating'] = scaler.fit_transform(df[['Rating']])
 
 # Define the recommendation function
-def recommend_movies(movie_name, num_recommendations=15):
+def recommend_movies(movie_name, num_recommendations=9):
     vectorizer = TfidfVectorizer()
     movie_title = vectorizer.fit_transform(df['Movie Name'])
 
     # Select relevant features
     genre_columns = ['War', 'Horror', 'Romance', 'Drama', 'Action', 'Comedy', 'Family', 'Animation', 'Science Fiction', 'Adventure']
-    numerical_features = csr_matrix(df[['Time', 'Rating'] + genre_columns].values)
+    numerical_features = csr_matrix(df[['Rating'] + genre_columns].values)
     feature_matrix = hstack([numerical_features, movie_title])
     similarity_matrix = cosine_similarity(feature_matrix)
 
@@ -38,7 +38,31 @@ def recommend_movies(movie_name, num_recommendations=15):
     movie_similarity = similarity_matrix[movie_index]
     top_similar_movies = movie_similarity.argsort()[::-1][1:num_recommendations+1]
 
-    return df.iloc[top_similar_movies][['Movie Name', 'Rating']].to_dict(orient="records")
+    recommendations = df.iloc[top_similar_movies][['Movie Name', 'Rating', 'Time']]
+
+    # Multiply rating by 100 and append '%'
+    recommendations['Rating'] = recommendations['Rating'].apply(lambda x: f"{x * 100:.2f}%")
+
+    recommendations['Time'] = recommendations['Time'].apply(lambda x: f"{x} min")
+
+    # Return Time as it is in the dataset
+    return recommendations.to_dict(orient="records")
+
+@app.route("/recommend", methods=["GET"])
+def recommend():
+    movie_name = request.args.get("movie_name")
+    if not movie_name:
+        return jsonify({"error": "Movie name is required"}), 400
+
+    recommendations = recommend_movies(movie_name)
+    if not recommendations:
+        return jsonify({"error": f"Movie '{movie_name}' not found."}), 404
+
+    return jsonify(recommendations)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
 
 # Trailer fetching function
 def fetch_imdb_trailer(movie_name):

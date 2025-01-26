@@ -80,22 +80,11 @@ export default function Home() {
               {movie["Movie Name"]}
             </h2>
             {/* Rating */}
-            <p className="text-yellow-400 mb-4">
+            <p className="text-yellow-400 mb-2">
               Rating: {movie["Rating"] || "N/A"}
             </p>
-            {/* Trailer */}
-            {movie.trailer_url ? (
-              <a
-                href={movie.trailer_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:underline"
-              >
-                Watch Trailer
-              </a>
-            ) : (
-              <p className="text-gray-400">Trailer not available.</p>
-            )}
+            {/* Time */}
+            <p className="text-green-400">Time: {movie["Time"] || "N/A"}</p>
           </div>
         ))}
       </div>
